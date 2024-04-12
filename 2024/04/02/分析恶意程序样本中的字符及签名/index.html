@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+
+
+<html lang="zh-CN">
+  
+
+    <head>
+      <meta charset="utf-8" />
+        
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1"
+      />
+      <title>分析恶意程序样本中的字符及数字签名 |  Rain&#39;s Blog</title>
+  <meta name="generator" content="hexo-theme-ayer">
+      
+      <link rel="shortcut icon" href="/favicon.ico" />
+       
+<link rel="stylesheet" href="/dist/main.css">
+
+      
+<link rel="stylesheet" href="/css/fonts/remixicon.css">
+
+      
+<link rel="stylesheet" href="/css/custom.css">
+ 
+      <script src="https://cdn.staticfile.org/pace/1.2.4/pace.min.js"></script>
+       
+ 
+
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5.0.1/bulma.min.css"
+      />
+      <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.js"></script>
+
+      <!-- mermaid -->
+      
+      <style>
+        .swal2-styled.swal2-confirm {
+          font-size: 1.6rem;
+        }
+      </style>
+    </head>
+  </html>
+</html>
+
+
+<body>
+  <div id="app">
+    
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-分析恶意程序样本中的字符及签名"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  分析恶意程序样本中的字符及数字签名
+</h1>
+ 
+
+      
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/04/02/%E5%88%86%E6%9E%90%E6%81%B6%E6%84%8F%E7%A8%8B%E5%BA%8F%E6%A0%B7%E6%9C%AC%E4%B8%AD%E7%9A%84%E5%AD%97%E7%AC%A6%E5%8F%8A%E7%AD%BE%E5%90%8D/" class="article-date">
+  <time datetime="2024-04-02T06:38:42.000Z" itemprop="datePublished">2024-04-02</time>
+</a> 
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E6%81%B6%E6%84%8F%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90/">恶意程序分析</a>
+  </div>
+  
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> 字数统计:</span>
+            <span class="post-count">2.3k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> 阅读时长≈</span>
+            <span class="post-count">7 分钟</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="分析恶意程序样本中的字符及数字签名"><a href="#分析恶意程序样本中的字符及数字签名" class="headerlink" title="分析恶意程序样本中的字符及数字签名"></a>分析恶意程序样本中的字符及数字签名</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><blockquote>
+<p>本次学习通过Strings分析样本字符、通过Sigcheck分析样本的数字签名</p>
+<p>本次实验所需工具及样本存放在笔者<a target="_blank" rel="noopener" href="https://github.com/SlientRainyDay/Rain_learning/tree/main/week33-34">github仓库 天问之路下的week33-34中</a></p>
+</blockquote>
+<span id="more"></span>
+
+<h2 id="一、环境配置及工具介绍"><a href="#一、环境配置及工具介绍" class="headerlink" title="一、环境配置及工具介绍"></a>一、环境配置及工具介绍</h2><h3 id="1-环境配置"><a href="#1-环境配置" class="headerlink" title="1.环境配置"></a>1.环境配置</h3><p>为了便于通过命令行使用工具，可以新建Tools文件夹，将工具放入文件夹中，保存基于命令行分析的工具。</p>
+<p>在高级系统设置里选择环境变量并配置路径</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404021606044.png" alt="image-20240402160657974"></p>
+<p>设置好之后，就可以通过命令行来使用这些工具了。</p>
+<h3 id="2-工具"><a href="#2-工具" class="headerlink" title="2.工具"></a>2.工具</h3><h4 id="2-1-Strings"><a href="#2-1-Strings" class="headerlink" title="2.1 Strings"></a>2.1 Strings</h4><p>通过前面的学习，可以知道判断目标样本是否为可以样本可以通过其是否含有敏感字符串来进行判断，比如杀毒软件进程，不相关的其他程序等。如果目标样本含有这些字符串，可以合理猜测其可能会搜索杀软进程将其关闭或者伪装成不相关的进程等操作。因此当我们分析PE程序时，先了解其包含哪些字符串是非常有利于下一步的分析工作的。</p>
+<p>这里使用Strings来分析PE文件中的字符串。</p>
+<h4 id="2-2-Sigcheck"><a href="#2-2-Sigcheck" class="headerlink" title="2.2 Sigcheck"></a>2.2 Sigcheck</h4><p>伪装成正规程序的恶意程序是没有数字签名的，虽然目前依然存在着大量的没有经过数字签名的软件，但是经过数字签名对比可以识别出伪装成有数字签名软件的恶意程序。利用sigcheck可以查看文件的数字签名信息，从而可以实现文件真假的辨别工作。</p>
+<h2 id="二、分析样本"><a href="#二、分析样本" class="headerlink" title="二、分析样本"></a>二、分析样本</h2><h3 id="1-利用Strings分析样本中的字符串"><a href="#1-利用Strings分析样本中的字符串" class="headerlink" title="1.利用Strings分析样本中的字符串"></a>1.利用Strings分析样本中的字符串</h3><p>使用方式：选中样本，在TC的命令行一栏输入如下命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strings 样本名称(选中Ctrl+C获取) &gt;输出名称</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404021642622.png" alt="image-20240402164233575"></p>
+<p>注意：</p>
+<ul>
+<li>若是输出文件大小为0，则可能是没有正确配置好环境变量。</li>
+<li>若是出现不能打开文件的报错，则很可能是防火墙拦截，需要关闭防火墙或在威胁选项里允许该文件。</li>
+</ul>
+<p>然后按F3打开文件</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404021644649.png" alt="image-20240402164416609"></p>
+<p>Strings同样会输出一些与分析工作无关的字符，所以我们需要按F7来查找我们需要的字符串信息：</p>
+<p>比如这里查找360：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404021646279.png" alt="image-20240402164649237"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404021647803.png" alt="image-20240402164701760"></p>
+<p>向下翻一下，可以发现很多敏感字符串：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404021647988.png" alt="image-20240402164748955"></p>
+<p>向上翻一下，可以看到很多键盘相关操作</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404021648922.png" alt="image-20240402164857878"></p>
+<p>看到这些我们有理由怀疑，这个程序有可能还有键盘记录之类的功能，来获取用户的输入，根据这些字符串，我们很多时候就能够基本弄清楚一个程序的行为了。</p>
+<p><strong>静态启发查杀</strong></p>
+<p>按道理这些字符串是不应该出现在一个正常的程序里面的，那么其实我们就可以将这些字符串提取出来，编写成特征，只要发现某一个程序中有大量的类似于[ESC]、[Enter]以及[BackSpace]之类和键盘按键相关的字符，以及多种杀毒软件的进程名称的话，那么我们就有理由相信，这是一个恶意程序了。</p>
+<h4 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h4><ul>
+<li>Strings分析字符串并不适用于所有样本：比如我们前面分析过的将字符串拆开一个个放到内存中或者是程序加壳混淆之后难以看到原本字符串的样子，这类程序是难以仅仅通过strings分析的。</li>
+<li>分析字符串的时候遇到不认识的字符要善于运用搜索引擎识别其含义。</li>
+</ul>
+<h3 id="2-利用Sigcheck分析样本的数字签名"><a href="#2-利用Sigcheck分析样本的数字签名" class="headerlink" title="2.利用Sigcheck分析样本的数字签名"></a>2.利用Sigcheck分析样本的数字签名</h3><p><strong>数字签名</strong></p>
+<blockquote>
+<p>在软件的分发下载和安装过程中，数字签名扮演着非常重要的角色。 数字签名可以验证软件的来源、完整性以及可信度，有效避免了恶意软件的攻击和非法修改。 然而，<strong>现在依然存在着大量的没有经过数字签名的软件在被下载和使用</strong>。因此，此方法只能识别那些伪装成有数字签名软件的恶意程序。</p>
+</blockquote>
+<p>下图摘自知乎，可以对数字签名有个更直观的了解</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404021658186.png" alt="image-20240402165849097"></p>
+<blockquote>
+<p><strong>软件数字签名的应用</strong></p>
+<p>为确保用户下载的应用软件安全可信，软件数字签名应用到了各个层面：</p>
+<ul>
+<li><strong>操作系统层面：</strong>如Windows、iOS、Android等操作系统，都支持软件数字签名。</li>
+<li><strong>应用商店层面：</strong>如苹果APP、谷歌play等各大应用商店上架APP软件都要求进行软件数字签名。</li>
+</ul>
+<p>总而言之，软件数字签名是保障软件安全的重要手段，它能够保证软件的完整性和真实性，为用户提供更安全可靠的软件。通过软件数字签名，用户可以确认软件的来源和安全性，避免下载到被篡改或恶意软件。</p>
+</blockquote>
+<p>所以通过数字签名主要是来辨别程序真伪。</p>
+<p>首先来回忆一下之前分析的伪装成Kugou的dll样本(16d6b0e2c77da2776a88dd88c7cfc672)</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404021728570.png" alt="image-20240402172800535"></p>
+<p>它的第四个导出函数的名称是KugouMain，于是就有理由怀疑，它是将自身伪装成了酷狗的文件，以混淆视听，因此可以将其归类为“白加黑”或者DLL劫持类的恶意程序。</p>
+<p>为什么恶意程序可以使用这样的名字呢？因为一般来说酷狗的主程序，即<code>kugou.exe</code>在调用dll文件时，并不会对文件的哈希值进行匹配，而是仅仅通过文件名进行调用。所以恶意程序作者将程序名称伪装成kugou.dll，然后再和正常的酷狗程序一起打包，这样用户在不知情的情况下，在安装了这个伪造的安装包之后，只要一启动酷狗程序，那么就会直接调用这个DLL文件了，于是恶意程序的作者就达到了它的目的。这种恶意软件被称为”白加黑”恶意软件，即利用白名单的kugou.exe来调用黑名单的kugou.dll程序，这种方式可以有效逃过杀软的查杀。</p>
+<p>下面在TC的命令行输入如下命令，使用Sigcheck查看其数字签名信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sigcheck -a 文件名(选中后Ctrl+J) &gt;输出文件名</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404022051821.png" alt="image-20240402205151760"></p>
+<p>可以看到该文件没有数字签名，其他的一些相关信息如产品公司版本等都是空着的</p>
+<p>下面提取从酷狗官方网站下载下来的酷狗安装包(文件kugou)的数字签名：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404022103252.png" alt="image-20240402210340212"></p>
+<p>可以看到真正的酷狗文件的签名等信息是比较全的。</p>
+<p>为了和前面我们分析过的那个虚假的kugou.dll作对比，我们来看一下该真实酷狗程序的导出表：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404022105779.png" alt="image-20240402210557741"></p>
+<p>可以看到不同函数的导出地址是不同的(区别于前面虚假程序的三个函数对应一个地址)</p>
+<p>如果真实文件有任何一处被修改，则数字签名处则会显示未签名状态。</p>
+<h3 id="3-利用sigcheck辨别Windows系统文件"><a href="#3-利用sigcheck辨别Windows系统文件" class="headerlink" title="3.利用sigcheck辨别Windows系统文件"></a>3.利用sigcheck辨别Windows系统文件</h3><p>值得注意的是，早期的Windows版本的系统软件是没有数字签名的，比如样本中的kernel32</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404022139730.png" alt="image-20240402213907664"></p>
+<p>而Win10之后的系统，微软都给文件加上了数字签名，如kernel32_64</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404022140377.png" alt="image-20240402214021317"></p>
+<p>鉴于现在Win10之前的系统越来越少，此处就简单提一下：</p>
+<p>在实际的样本分析中，有很多不严谨的黑客会伪造Windows系统软件，而在伪造系统软件的过程中，一些相关信息很有可能会写错。如果需要分辨该样本是否为为系统软件时，不确定的情况下最好拿真正的Windows系统文件来做一下对比就好。</p>
+<p>各个安全公司的内部都会有一个庞大的白名单数据库，里面一定会有微软各个版本的操作系统的文件，目的就是为了避免分析师不小心将微软文件判定为是恶意程序，因为数据库中的微软白名单文件是绝对不可以报毒的，否则一定会引发全球规模的大面积误报。基于这一点，当我们遇到一个所谓的微软文件，而我们又拿不准它到底是真是假的时候，就直接看我们的白名单数据库里面有没有这个文件，如果没有，那么可以直接拉黑。但前提是，你一定要保证这个白名单的数据库是随着微软的脚步实时更新的，否则，我们还是要对文件进行深入分析才能够做出判断。</p>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><p>看雪《恶意程序分析与高级对抗技术》</p>
+ 
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>版权声明： </strong>
+          
+          本博客所有文章除特别声明外，著作权归作者所有。转载请注明出处！
+          
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://example.com/2024/04/02/%E5%88%86%E6%9E%90%E6%81%B6%E6%84%8F%E7%A8%8B%E5%BA%8F%E6%A0%B7%E6%9C%AC%E4%B8%AD%E7%9A%84%E5%AD%97%E7%AC%A6%E5%8F%8A%E7%AD%BE%E5%90%8D/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%81%B6%E6%84%8F%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90%E6%8A%80%E5%B7%A7/" rel="tag">恶意程序分析技巧</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/04/09/VMP2.07%E5%8A%A0%E5%A3%B3%E7%A8%8B%E5%BA%8F%E9%80%86%E5%90%91%E5%88%86%E6%9E%90/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            VMP2.07加壳程序逆向分析
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/03/27/markdown%E5%9B%BE%E5%BA%8A%E5%A4%96%E9%93%BE%E5%9B%BE%E7%89%87%E4%B8%8B%E8%BD%BD%E5%88%B0%E6%9C%AC%E5%9C%B0/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">markdown图床外链图片下载到本地代码</div>
+      </a>
+    
+  </nav>
+
+  
+   
+  
+    
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2024
+        <i class="ri-heart-fill heart_icon"></i> Rain&#39;s Blog
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>访问人数:<span id="busuanzi_value_site_uv"></span></span>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>浏览次数:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+      </li>
+    </ul>
+  </div>
+</footer>    
+    </main>
+    <div class="float_btns">
+      <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+<div class="todark" id="todark">
+  <i class="ri-moon-line"></i>
+</div>
+
+    </div>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="Rain&#39;s Blog"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/friends">友链</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="搜索">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+    </aside>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-3.6.0.min.js"></script>
+ 
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+ 
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: ".tocbot",
+    contentSelector: ".article-entry",
+    headingSelector: "h1, h2, h3, h4, h5, h6",
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: "main",
+    positionFixedSelector: ".tocbot",
+    positionFixedClass: "is-position-fixed",
+    fixedSidebarOffset: "auto",
+  });
+</script>
+
+<script src="https://cdn.staticfile.org/jquery-modal/0.9.2/jquery.modal.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdn.staticfile.org/jquery-modal/0.9.2/jquery.modal.min.css"
+/>
+<script src="https://cdn.staticfile.org/justifiedGallery/3.8.1/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+ <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.staticfile.org/photoswipe/4.1.3/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.staticfile.org/photoswipe/4.1.3/default-skin/default-skin.min.css">
+<script src="https://cdn.staticfile.org/photoswipe/4.1.3/photoswipe.min.js"></script>
+<script src="https://cdn.staticfile.org/photoswipe/4.1.3/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script> 
+<!-- MathJax -->
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+ 
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+ 
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+ 
+<link rel="stylesheet" href="/css/clipboard.css">
+ <script src="https://cdn.staticfile.org/clipboard.js/2.0.10/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+ 
+<!-- CanvasBackground -->
+
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({ theme: "forest" });
+  }
+</script>
+
+
+    
+    
+
+  </div>
+</body>
+
+</html>

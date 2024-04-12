@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+
+
+<html lang="zh-CN">
+  
+
+    <head>
+      <meta charset="utf-8" />
+        
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1"
+      />
+      <title>python代码保护及破解(上) |  Rain&#39;s Blog</title>
+  <meta name="generator" content="hexo-theme-ayer">
+      
+      <link rel="shortcut icon" href="/favicon.ico" />
+       
+<link rel="stylesheet" href="/dist/main.css">
+
+      
+<link rel="stylesheet" href="/css/fonts/remixicon.css">
+
+      
+<link rel="stylesheet" href="/css/custom.css">
+ 
+      <script src="https://cdn.staticfile.org/pace/1.2.4/pace.min.js"></script>
+       
+ 
+
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5.0.1/bulma.min.css"
+      />
+      <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.js"></script>
+
+      <!-- mermaid -->
+      
+      <style>
+        .swal2-styled.swal2-confirm {
+          font-size: 1.6rem;
+        }
+      </style>
+    </head>
+  </html>
+</html>
+
+
+<body>
+  <div id="app">
+    
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-python代码保护及破解-1"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  python代码保护及破解(上)
+</h1>
+ 
+
+      
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2024/01/10/python%E4%BB%A3%E7%A0%81%E4%BF%9D%E6%8A%A4%E5%8F%8A%E7%A0%B4%E8%A7%A3-1/" class="article-date">
+  <time datetime="2024-01-10T14:01:56.000Z" itemprop="datePublished">2024-01-10</time>
+</a> 
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/python/">python</a>
+  </div>
+  
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> 字数统计:</span>
+            <span class="post-count">4k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> 阅读时长≈</span>
+            <span class="post-count">17 分钟</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="python代码保护与破解-上"><a href="#python代码保护与破解-上" class="headerlink" title="python代码保护与破解(上)"></a>python代码保护与破解(上)</h1><blockquote>
+<p>前面关于pyc文件格式的介绍较为啰嗦，可以直接移至<a href="#1">.pyc加密</a>开始阅读</p>
+</blockquote>
+<blockquote>
+<p>Python 是一种面向对象的解释型计算机程序设计语言，Python 语言写的程序<strong>不需要编译成二进制代码</strong>，可以直接从源代码运行程序。 在计算机内部，<strong>Python解释器把源代码转换成称为字节的中间形式</strong>，然后再它翻译计算机使用的机器语言并运行。这使得Python更加简单 ，也使得Python程序更加易于移植。</p>
+</blockquote>
+<span id="more"></span>
+
+<p>Python 代码的执行过程和 Java 类似：</p>
+<blockquote>
+<p>Python解释器在执行任何一个Python程序文件时，首先进行的动作都是先对文件中的Python源代码进行编译，编译的主要结果是产生一组Python的byte code（字节码），然后将编译的结果交给Python的虚拟机（Virtual Machine），由虚拟机按照顺序一条一条地执行字节码，从而完成对Python程序的执行动作。</p>
+</blockquote>
+<ol>
+<li>将<code>.py</code>文件编译得到 Python 的字节码</li>
+<li>Python 虚拟机(Python Virtual Machine) 执行编译好的字节码</li>
+</ol>
+<p>本文着重于<strong>加密保护</strong>，更详细的原理及过程请移至<a target="_blank" rel="noopener" href="https://developer.aliyun.com/article/599833">这篇</a>以及<a target="_blank" rel="noopener" href="https://www.iteye.com/topic/382423">这篇</a></p>
+<h2 id="pyc基础知识"><a href="#pyc基础知识" class="headerlink" title="pyc基础知识"></a>pyc基础知识</h2><p><code>.pyc</code>文件介绍：</p>
+<ul>
+<li>由 py 文件经过编译后生成的二进制字节码文件</li>
+<li>一种跨平台的字节码，由python的虚拟机来执行</li>
+<li>pyc文件的内容跟python版本有关，不同的python版本编译成不同的pyc文件，pyc只能在相同版本下运行</li>
+</ul>
+<h2 id="pyc文件格式"><a href="#pyc文件格式" class="headerlink" title="pyc文件格式"></a>pyc文件格式</h2><h4 id="magic-number-源代码文件信息-PyCodeObject"><a href="#magic-number-源代码文件信息-PyCodeObject" class="headerlink" title="magic number + 源代码文件信息 + PyCodeObject"></a><strong>magic number + 源代码文件信息 + PyCodeObject</strong></h4><ul>
+<li>4个字节的 magic number</li>
+<li>12个字节的源代码文件信息（不同版本的 Python 包含的长度和信息都不一样，后面说）</li>
+<li>序列化之后的 PyCodeObject</li>
+</ul>
+<h4 id="magic-number"><a href="#magic-number" class="headerlink" title="magic number"></a><strong>magic number</strong></h4><p>像大多数的文件格式一样，pyc 文件开头也有一个 magic number，不过不一样的是 pyc 文件的 magic number 并不固定，而是不同版本的 Python 生成的 pyc 文件的 magic number 都不相同。这里可以看到看不同版本的 Python 的 magic number 是多少。前两个字节以小端的形式写入，然后加上 \r\n 形成了四个字节的 pyc 文件的magic number</p>
+<p>如 Python2.7 的 magic number 为 MAGIC_NUMBER &#x3D; (62211).to_bytes(2, ‘little’) + b’\r\n’</p>
+<p>我们可以看到的前四个字节的16进制形式为 03f3 0d0a</p>
+<p><img src="https://image-1311319331.cos.ap-beijing.myqcloud.com/image/202305182031755.png" alt="image-20230518203133716"></p>
+<p>python 2.7生成的 pyc 文件前32个字节</p>
+<h4 id="源代码文件信息"><a href="#源代码文件信息" class="headerlink" title="源代码文件信息"></a><strong>源代码文件信息</strong></h4><p>源代码文件信息在 Python 不同的版本之后差别较大</p>
+<ul>
+<li>在Python2的时候，这部分只有4个字节，为源代码文件的修改时间的 Unix timestamp（精确到秒）以小端法写入，如上图 (1586087865).to_bytes(4, ‘little’).hex() -&gt; b9c7 895e。</li>
+<li>在 Python 3.5 之前的版本已经找不到了（后面就都从 Python 3.5 开始讨论了）</li>
+<li>Python 3.5 和 3.6 相对于 Python 2，源代码文件信息这部分，在时间后面增加了4个字节的源代码文件的大小，单位字节，以小端法写入。如源码文件大小为87个字节，那么文件信息部分就写入 5700 0000。加上前面的修改时间，就是 b9c7 895e 5700 0000</li>
+</ul>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202735.png" alt="image-20230518203331334"></p>
+<p>python 3.6生成的 pyc 文件前32个字节</p>
+<ul>
+<li>从 Python3.7 开始支持 hash-based pyc 文件</li>
+</ul>
+<p>​	   也是就说，Python 不仅支持校验 timestrap 来判断文件是否修改过了，也支持校验 hash 值。Python 为了支持 hash 校验又使源代码文件信息这部分增加了4个字节，变为一共12个字节。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202084.png" alt="image-20230518203538922"></p>
+<p>python 3.7生成的 pyc 文件前32个字节</p>
+<ul>
+<li>但是这个 hash 校验默认是不启用的（可以通过调用 py_compile 模块的 compile 函数时传入参数invalidation_mode&#x3D;PycInvalidationMode.CHECKED_HASH 启用）。不启用时前4个字节为0000 0000，后8个字节为3.6和3.7版本一样的源码文件的修改时间和大小；当启用时前4个字节变为0100 0000或者0300 0000，后8个字节为源码文件的 hash 值。</li>
+</ul>
+<h4 id="PyCodeObject"><a href="#PyCodeObject" class="headerlink" title="PyCodeObject"></a><strong>PyCodeObject</strong></h4><p>其实这是一个定义在 Python 源码 Include&#x2F;code.h 中的结构体，结构体中的数据通过 Python 的 marshal 模块序列化之后存到了 pyc文件当中。（不同版本之间 PyCodeObject 的内容是不一样的，但是这就导致了不同版本之间的 Python 产生的 pyc 文件其实并不完全通用</p>
+<p>更详细部分请参考<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/145811103">此篇</a></p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/617737294">pyc详细文件结构参考</a></li>
+</ul>
+<p><img src="https://image-1311319331.cos.ap-beijing.myqcloud.com/image/202305172213425.png" alt="image-20230517221320316"></p>
+<p id="1"></p> 
+
+
+
+<h2 id="pyc加密"><a href="#pyc加密" class="headerlink" title=".pyc加密"></a><code>.pyc</code>加密</h2><p>通过以上介绍，可以得知pyc是python编译后，由虚拟机产生的产物。<br>pyc的初衷不是为了反编译，只是因为虚拟机加载的特性，所以pyc带了一点混淆的功能，基本不能算是保护，极其容易被破解。</p>
+<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>1.命令行，单个文件编译(console)</p>
+<p>进入要编译文件的所在目录</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python -m py_compile file.py</span><br></pre></td></tr></table></figure>
+
+<p>会在同目录下生成<code>_pycache_</code>文件夹，编译生成的pyc文件在文件夹里面</p>
+<p>2.单个编译(pycharm)</p>
+<p>右键复制<code>.py</code>文件路径写入下面括号即可</p>
+<p><img src="https://image-1311319331.cos.ap-beijing.myqcloud.com/image/202305191159842.png" alt="image-20230519115925768"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">import py_compile</span><br><span class="line">py_compile.compile(&#x27;/path/to/foo.py&#x27;)      #指明是哪个文件</span><br></pre></td></tr></table></figure>
+
+<p>3.批量编译(pycharm)(推荐使用)</p>
+<p>编译文件目录下的所有<code>.py</code>文件，在pycharm中输入以下两行就可</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">import compileall</span><br><span class="line">compileall.compile_dir(r&#x27;/path&#x27;)      #path为要编译的目录</span><br></pre></td></tr></table></figure>
+
+<h3 id="反编译"><a href="#反编译" class="headerlink" title="反编译"></a>反编译</h3><h4 id="1-使用uncompyle6库"><a href="#1-使用uncompyle6库" class="headerlink" title="1.使用uncompyle6库"></a>1.使用uncompyle6库</h4><p><strong><code>uncompyle6</code> 现仅适用于 Python 2.4 到 3.8 版本</strong></p>
+<p>3.9及以上版本使用pycdc  参考<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_63585949/article/details/127080253">https://blog.csdn.net/qq_63585949/article/details/127080253</a></p>
+<p>安装</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install uncompyle6</span><br></pre></td></tr></table></figure>
+
+<p>使用也非常简单，在命令行中，<code>uncompyle6</code>加上需要反编译的文件参数即可，注意使用<code>-o</code> 选项输出到文件中</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">uncompyle6 -o test.py test.pyc</span><br></pre></td></tr></table></figure>
+
+<p>这会将<code>test.pyc</code>文件反编译，并输出到<code>test.py</code>文件中</p>
+<p><strong>注：如果遇到错误，可能因为<code>pyc</code>文件生成时，头部的<code>magic number</code>被清理，需要另外补上，magic numbei表见文末。magic number此篇不详细介绍，更详细内容请移至笔者的<a target="_blank" rel="noopener" href="http://101.42.53.205/archives/296">pyc文件头—Magic Number 详解</a></strong></p>
+<h4 id="2-使用pycdc-推荐"><a href="#2-使用pycdc-推荐" class="headerlink" title="2.使用pycdc(推荐)"></a>2.使用pycdc(推荐)</h4><p>遇到高版本的pyc文件时，需要使用pycdc来反编译。</p>
+<p>详细过程参考下面这篇。</p>
+<p>reference：<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_63585949/article/details/127080253">https://blog.csdn.net/qq_63585949/article/details/127080253</a></p>
+<h2 id="pyinstaller打包"><a href="#pyinstaller打包" class="headerlink" title="pyinstaller打包"></a>pyinstaller打包</h2><p><strong>实际上是对上一步的更进一步</strong></p>
+<p>pyinstaller的原理：</p>
+<p>把python解析器、脚本以及被打包脚本依赖的其他脚本（三方库）和需要的windows dll文件等等 <strong>打包</strong>成一个可执行的文件，这个文件可以不依赖python环境直接在wondows机器上执行起来。</p>
+<h3 id="打包"><a href="#打包" class="headerlink" title="打包"></a>打包</h3><p>安装</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install pyinstaller</span><br></pre></td></tr></table></figure>
+
+<p>在pycharm中，右键选择要打包的文件，打开于终端</p>
+<p><img src="https://image-1311319331.cos.ap-beijing.myqcloud.com/image/202305200024639.png" alt="image-20230520002407512"></p>
+<p>在终端输入</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pyinstaller -F -w file.py     #文件名</span><br></pre></td></tr></table></figure>
+
+<p>打包成功输出’successfull’</p>
+<p><img src="https://image-1311319331.cos.ap-beijing.myqcloud.com/image/202305200026213.png" alt="image-20230520002659155"></p>
+<p>exe文件在在<code>.py</code>文件同目录下的dist文件中</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202492.png" alt="image-20230520002538530"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202028.png" alt="image-20230520002727200"></p>
+<p>因为笔者此代码为socket通信代码，双击后可以看到是成功运行的</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202120.png" alt="image-20230520002829493"></p>
+<h3 id="解包"><a href="#解包" class="headerlink" title="解包"></a>解包</h3><p>分为解包、补全和反编译三个步骤</p>
+<h4 id="1-解包"><a href="#1-解包" class="headerlink" title="1.解包"></a>1.解包</h4><p>解包使用<code>pyinstaller.py</code>，解包的到的文件是不带magic number头部的，需要将pyc文件的magic number补全</p>
+<p>(1).下载</p>
+<p>下载拆包工具：pyinstxtractor.py：<a target="_blank" rel="noopener" href="https://sourceforge.net/projects/pyinstallerextractor/">https://sourceforge.net/projects/pyinstallerextractor/</a></p>
+<p>下载完成后是一个<code>.py</code>文件</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202637.png" alt="image-20230520123619979"></p>
+<p>(2)使用</p>
+<p>先将<code>pyinstxtractor.py</code>工具与我们要反编译的<code>.exe</code>文件放入同一个工作目录下，运行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python pyinstxtractor.py  filename.exe</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202806.png" alt="image-20230520131245628"></p>
+<p>可以发现工作目录下多了一个名为<code>文件名.exe_extracted</code>的文件夹</p>
+<p><img src="https://image-1311319331.cos.ap-beijing.myqcloud.com/image/202305201313399.png" alt="image-20230520131350357"></p>
+<ul>
+<li>进入该文件夹，里面有许许多多后缀为<code>.dll</code>和<code>.pyd</code>的文件，还有一个名为<code>PYZ-00.pyz_extracted</code>的文件夹，这个文件夹里放的是程序引入的<strong>依赖库</strong>，如果你引入过自己其他的<code>.py</code>文件，就可以用类似的方法将依赖的<code>.py</code>文件反编译出来。</li>
+</ul>
+<p><strong>目录中有两个带<code>.pyc</code>后缀的文件，找到那个与你的<code>.exe</code>文件同名的文件，注意，是同名！</strong></p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202596.png" alt=" "></p>
+<p>为它添加<code>.pyc</code>后缀并用Hex编辑器打开：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202999.png" alt="image-20230520141835818"></p>
+<p>头部插入<strong>magic number</strong></p>
+<p>magic number在<code>struct</code>文件中</p>
+<p><img src="https://image-1311319331.cos.ap-beijing.myqcloud.com/image/202305290845609.png" alt="image-20230529084527552"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202828.png" alt="image-20230520142022161"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202968.png" alt="image-20230520142106852"></p>
+<p><strong>注：magic头因python版本而不同</strong></p>
+<p>修改完成后记得保存</p>
+<p>另外一个方法就是使用python对二进制文件处理，增加头文件，笔者尚未验证是否可行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">structPath = &#x27;struct&#x27;</span><br><span class="line">programPath = &#x27;test&#x27;</span><br><span class="line">f=open(structPath, &#x27;rb&#x27;)		#打开struct文件</span><br><span class="line">f2=open(programPath, &#x27;rb&#x27;)		#打开待反编文件</span><br><span class="line">w_all=f2.read()#先读取待反编文件原来的内容</span><br><span class="line">f2.seek(0)#读取完之后从头开始</span><br><span class="line">w=f.read(16).hex()#再读取16个字节用于比较</span><br><span class="line">w2=f2.read(16).hex()		#struct也读取16个用于比较</span><br><span class="line">print(w,w2,sep=&#x27;\n&#x27;)		#打印出来让我们看见</span><br><span class="line">add=input(&#x27;Please input the codes you need to write:&#x27;)#然后问你要在开头写入什么</span><br><span class="line">add=bytes.fromhex(add)		#把普通字符串转换为bytes格式，并不是encode，而是fromhex(),把字符串看成是十六进制编码</span><br><span class="line">f2.close()#关闭</span><br><span class="line">f2=open(programPath+&#x27;.pyc&#x27;, &#x27;wb&#x27;)			#创建pyc待反编文件</span><br><span class="line">f2.write(add+w_all)							#把加入的字节和原来的字节合并写入文件</span><br><span class="line">f.close()</span><br><span class="line">f2.close()</span><br><span class="line">print(&#x27;Done.&#x27;)</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202589.webp" alt="16898577-63febd29f60cfb41"></p>
+<h4 id="2-反编译"><a href="#2-反编译" class="headerlink" title="2.反编译"></a>2.反编译</h4><p>在目录下运行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">uncompyle6 -o file.py file.pyc</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202062.png" alt="image-20230520142616079"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202468.png" alt="image-20230520142645247"></p>
+<p>得到了<code>.py</code>文件</p>
+<p>打开即可看到正常内容。</p>
+<p><strong>注：</strong></p>
+<p>在实际逆向过程中，只会解包一个pyc文件，而源码调用的库文件还需要手动去重复如上步骤还原。</p>
+<p>通过以上的学习，可以发现pyinstaller打包后的源码也极容易被还原出pyc文件，那么如何绕过这一过程呢？</p>
+<h2 id="源码混淆"><a href="#源码混淆" class="headerlink" title="源码混淆"></a>源码混淆</h2><p><strong>原理</strong></p>
+<blockquote>
+<p>通过一系列的转换，让代码逐渐不让人那么容易明白。</p>
+<p>主要有以下几种手段：</p>
+<p>移除注释和文档。没有这些说明，在一些关键逻辑上就没那么容易明白了。<br>改变缩进。完美的缩进看着才舒服，如果缩进忽长忽短，看着也一定闹心。<br>在tokens中间加入一定空格。这就和改变缩进的效果差不多。<br>重命名函数、类、变量。命名直接影响了可读性，乱七八糟的名字可是阅读理解的一大障碍。<br>在空白行插入无效代码。</p>
+</blockquote>
+<p><strong>方法</strong></p>
+<p>oxyry在线网站进行混淆</p>
+<p><a target="_blank" rel="noopener" href="https://pyob.oxyry.com/![image-20230529085414865](https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202350.png)">https://pyob.oxyry.com/![image-20230529085414865](https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202350.png)</a></p>
+<p>仅对源码进行了混淆，查看字节码还是能够看到代码逻辑，基本上不影响</p>
+<h2 id="小结1"><a href="#小结1" class="headerlink" title="小结1"></a>小结1</h2><p>综上所述，不经过处理，直接使用pyinstaller打包会将py文件编译为pyc文件存储在<code>_pycache_</code>文件夹中，然后将自己编写的pyc和引用到的第三方库打包到exe中。或者直接对源码进行混淆。</p>
+<p>这两种方法都比较容易被破解。</p>
+<h2 id="防止逆向的可行方法"><a href="#防止逆向的可行方法" class="headerlink" title="防止逆向的可行方法"></a>防止逆向的可行方法</h2><p>以上方法，无论如何都会产生pyc，所以思路为对<strong>pyc文件进行混淆</strong>或者**打包时绕过pyc文件(以其他文件形式代替pyc)**，得到更难反编译的其他文件形式。</p>
+<h3 id="1-字节码混淆！！"><a href="#1-字节码混淆！！" class="headerlink" title="1.字节码混淆！！"></a>1.字节码混淆！！</h3><p><strong>混淆实现：</strong></p>
+<p>在opcode中添加一句加载超过范围的变量指令，而后再添加一句跳转指令跳过，达成不影响执行而且能欺骗反编译工具的目的</p>
+<p>具体实现方法笔者会在《python代码保护(下)》一文中介绍。</p>
+<h3 id="2-Cython加密"><a href="#2-Cython加密" class="headerlink" title="2.Cython加密"></a>2.Cython加密</h3><blockquote>
+<p>在python里，pyd格式即动态链接库，<strong>pyinstaller打包时 优先级pyd &gt; py</strong>， pyd文件是由 Cython首先把python源码翻译成了 .c文件，这个过程基本<strong>不可逆</strong>，然后vs再把这个.c文件编译成了pyd文件。所以源码失踪了，只剩下汇编语言。</p>
+</blockquote>
+<blockquote>
+<p>Cython是一个编程语言，它通过类似Python的语法来编写C扩展并可以被Python调用。能够将Python+C混合编码的.pyx脚本转换为C代码，主要用于优化Python脚本性能或Python调用C函数库。基于它的原理，我们可以得到一种代码加密的思路：将 .py&#x2F;.pyx 编译为 .c 文件，再将 .c 文件编译为 .so(Unix) 或 .pyd(Windows)，这样得到的文件更难反编译。</p>
+</blockquote>
+<p>此处请参考如下两文。</p>
+<h4 id="方法"><a href="#方法" class="headerlink" title="方法"></a><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_41462821/article/details/118003897">方法</a></h4><h4 id="参考"><a href="#参考" class="headerlink" title="参考"></a><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/036cbcd20776">参考</a></h4><p>具体实现方法笔者会在《python代码保护(下)》一文中介绍。</p>
+<h3 id="3-成熟的解决方案：Pyarmor"><a href="#3-成熟的解决方案：Pyarmor" class="headerlink" title="3.成熟的解决方案：Pyarmor"></a>3.成熟的解决方案：Pyarmor</h3><p><strong>目前基本无法逆向破解</strong></p>
+<h4 id="方法-参考"><a href="#方法-参考" class="headerlink" title="方法+参考"></a><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_43207777/article/details/108351862">方法+参考</a></h4><p>具体实现方法笔者会在《python代码保护(下)》一文中介绍。</p>
+<h2 id="其余方法-未验证"><a href="#其余方法-未验证" class="headerlink" title="其余方法(未验证)"></a>其余方法(未验证)</h2><h3 id="镜像打包"><a href="#镜像打包" class="headerlink" title="镜像打包"></a>镜像打包</h3><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/uncle_yiba/article/details/80046157">将一个简单的python程序打包成加密的docker镜像并对外提供接口</a></p>
+<h3 id="pyminfier"><a href="#pyminfier" class="headerlink" title="pyminfier"></a>pyminfier</h3><p>github开源混淆器，对类名&#x2F;函数名&#x2F;变量名进行重新命名，甚至能够对部分Python常量进行扰乱。</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/liftoff/pyminifier">pyminifier</a></p>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202476.png" alt="image-20230529105708611"></p>
+<h3 id="pyc-obscure"><a href="#pyc-obscure" class="headerlink" title="pyc_obscure"></a>pyc_obscure</h3><p>github开源混淆器</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/marryjianjian/pyc_obscure">pyc_obscure</a></p>
+<blockquote>
+<p>将垃圾数据插入 PyCodeObject 的 co_code 以混淆像 uncompyle6 这样的反编译器</p>
+</blockquote>
+<p><img src="https://cdn.jsdelivr.net/gh/SlientRainyDay/image@main/image/202401102202891.png" alt="image-20230529105851069"></p>
+<h2 id="附：pyc文件magic-number查阅表"><a href="#附：pyc文件magic-number查阅表" class="headerlink" title="附：pyc文件magic number查阅表"></a>附：pyc文件magic number查阅表</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br></pre></td><td class="code"><pre><span class="line">Known values:</span><br><span class="line">  Python 1.5:   20121</span><br><span class="line">#  Python 1.5.1: 20121</span><br><span class="line">#     Python 1.5.2: 20121</span><br><span class="line">#     Python 1.6:   50428</span><br><span class="line">#     Python 2.0:   50823</span><br><span class="line">#     Python 2.0.1: 50823</span><br><span class="line">#     Python 2.1:   60202</span><br><span class="line">#     Python 2.1.1: 60202</span><br><span class="line">#     Python 2.1.2: 60202</span><br><span class="line">#     Python 2.2:   60717</span><br><span class="line">#     Python 2.3a0: 62011</span><br><span class="line">#     Python 2.3a0: 62021</span><br><span class="line">#     Python 2.3a0: 62011 (!)</span><br><span class="line">#     Python 2.4a0: 62041</span><br><span class="line">#     Python 2.4a3: 62051</span><br><span class="line">#     Python 2.4b1: 62061</span><br><span class="line">#     Python 2.5a0: 62071</span><br><span class="line">#     Python 2.5a0: 62081 (ast-branch)</span><br><span class="line">#     Python 2.5a0: 62091 (with)</span><br><span class="line">#     Python 2.5a0: 62092 (changed WITH_CLEANUP opcode)</span><br><span class="line">#     Python 2.5b3: 62101 (fix wrong code: for x, in ...)</span><br><span class="line">#     Python 2.5b3: 62111 (fix wrong code: x += yield)</span><br><span class="line">#     Python 2.5c1: 62121 (fix wrong lnotab with for loops and</span><br><span class="line">#                          storing constants that should have been removed)</span><br><span class="line">#     Python 2.5c2: 62131 (fix wrong code: for x, in ... in listcomp/genexp)</span><br><span class="line">#     Python 2.6a0: 62151 (peephole optimizations and STORE_MAP opcode)</span><br><span class="line">#     Python 2.6a1: 62161 (WITH_CLEANUP optimization)</span><br><span class="line">#     Python 2.7a0: 62171 (optimize list comprehensions/change LIST_APPEND)</span><br><span class="line">#     Python 2.7a0: 62181 (optimize conditional branches:</span><br><span class="line">#                          introduce POP_JUMP_IF_FALSE and POP_JUMP_IF_TRUE)</span><br><span class="line">#     Python 2.7a0  62191 (introduce SETUP_WITH)</span><br><span class="line">#     Python 2.7a0  62201 (introduce BUILD_SET)</span><br><span class="line">#     Python 2.7a0  62211 (introduce MAP_ADD and SET_ADD)</span><br><span class="line">#     Python 3000:   3000</span><br><span class="line">#                    3010 (removed UNARY_CONVERT)</span><br><span class="line">#                    3020 (added BUILD_SET)</span><br><span class="line">#                    3030 (added keyword-only parameters)</span><br><span class="line">#                    3040 (added signature annotations)</span><br><span class="line">#                    3050 (print becomes a function)</span><br><span class="line">#                    3060 (PEP 3115 metaclass syntax)</span><br><span class="line">#                    3061 (string literals become unicode)</span><br><span class="line">#                    3071 (PEP 3109 raise changes)</span><br><span class="line">#                    3081 (PEP 3137 make __file__ and __name__ unicode)</span><br><span class="line">#                    3091 (kill str8 interning)</span><br><span class="line">#                    3101 (merge from 2.6a0, see 62151)</span><br><span class="line">#                    3103 (__file__ points to source file)</span><br><span class="line">#     Python 3.0a4: 3111 (WITH_CLEANUP optimization).</span><br><span class="line">#     Python 3.0b1: 3131 (lexical exception stacking, including POP_EXCEPT</span><br><span class="line">                          #3021)</span><br><span class="line">#     Python 3.1a1: 3141 (optimize list, set and dict comprehensions:</span><br><span class="line">#                         change LIST_APPEND and SET_ADD, add MAP_ADD #2183)</span><br><span class="line">#     Python 3.1a1: 3151 (optimize conditional branches:</span><br><span class="line">#                         introduce POP_JUMP_IF_FALSE and POP_JUMP_IF_TRUE</span><br><span class="line">                          #4715)</span><br><span class="line">#     Python 3.2a1: 3160 (add SETUP_WITH #6101)</span><br><span class="line">#                   tag: cpython-32</span><br><span class="line">#     Python 3.2a2: 3170 (add DUP_TOP_TWO, remove DUP_TOPX and ROT_FOUR #9225)</span><br><span class="line">#                   tag: cpython-32</span><br><span class="line">#     Python 3.2a3  3180 (add DELETE_DEREF #4617)</span><br><span class="line">#     Python 3.3a1  3190 (__class__ super closure changed)</span><br><span class="line">#     Python 3.3a1  3200 (PEP 3155 __qualname__ added #13448)</span><br><span class="line">#     Python 3.3a1  3210 (added size modulo 2**32 to the pyc header #13645)</span><br><span class="line">#     Python 3.3a2  3220 (changed PEP 380 implementation #14230)</span><br><span class="line">#     Python 3.3a4  3230 (revert changes to implicit __class__ closure #14857)</span><br><span class="line">#     Python 3.4a1  3250 (evaluate positional default arguments before</span><br><span class="line">#                        keyword-only defaults #16967)</span><br><span class="line">#     Python 3.4a1  3260 (add LOAD_CLASSDEREF; allow locals of class to override</span><br><span class="line">#                        free vars #17853)</span><br><span class="line">#     Python 3.4a1  3270 (various tweaks to the __class__ closure #12370)</span><br><span class="line">#     Python 3.4a1  3280 (remove implicit class argument)</span><br><span class="line">#     Python 3.4a4  3290 (changes to __qualname__ computation #19301)</span><br><span class="line">#     Python 3.4a4  3300 (more changes to __qualname__ computation #19301)</span><br><span class="line">#     Python 3.4rc2 3310 (alter __qualname__ computation #20625)</span><br><span class="line">#     Python 3.5a1  3320 (PEP 465: Matrix multiplication operator #21176)</span><br><span class="line">#     Python 3.5b1  3330 (PEP 448: Additional Unpacking Generalizations #2292)</span><br><span class="line">#     Python 3.5b2  3340 (fix dictionary display evaluation order #11205)</span><br><span class="line">#     Python 3.5b3  3350 (add GET_YIELD_FROM_ITER opcode #24400)</span><br><span class="line">#     Python 3.5.2  3351 (fix BUILD_MAP_UNPACK_WITH_CALL opcode #27286)</span><br><span class="line">#     Python 3.6a0  3360 (add FORMAT_VALUE opcode #25483)</span><br><span class="line">#     Python 3.6a1  3361 (lineno delta of code.co_lnotab becomes signed #26107)</span><br><span class="line">#     Python 3.6a2  3370 (16 bit wordcode #26647)</span><br><span class="line">#     Python 3.6a2  3371 (add BUILD_CONST_KEY_MAP opcode #27140)</span><br><span class="line">#     Python 3.6a2  3372 (MAKE_FUNCTION simplification, remove MAKE_CLOSURE</span><br><span class="line">#                         #27095)</span><br><span class="line">#     Python 3.6b1  3373 (add BUILD_STRING opcode #27078)</span><br><span class="line">#     Python 3.6b1  3375 (add SETUP_ANNOTATIONS and STORE_ANNOTATION opcodes</span><br><span class="line">#                         #27985)</span><br><span class="line">#     Python 3.6b1  3376 (simplify CALL_FUNCTIONs &amp; BUILD_MAP_UNPACK_WITH_CALL</span><br><span class="line">                          #27213)</span><br><span class="line">#     Python 3.6b1  3377 (set __class__ cell from type.__new__ #23722)</span><br><span class="line">#     Python 3.6b2  3378 (add BUILD_TUPLE_UNPACK_WITH_CALL #28257)</span><br><span class="line">#     Python 3.6rc1 3379 (more thorough __class__ validation #23722)</span><br><span class="line">#     Python 3.7a1  3390 (add LOAD_METHOD and CALL_METHOD opcodes #26110)</span><br><span class="line">#     Python 3.7a2  3391 (update GET_AITER #31709)</span><br><span class="line">#     Python 3.7a4  3392 (PEP 552: Deterministic pycs #31650)</span><br><span class="line">#     Python 3.7b1  3393 (remove STORE_ANNOTATION opcode #32550)</span><br><span class="line">#     Python 3.7b5  3394 (restored docstring as the first stmt in the body;</span><br><span class="line">#                         this might affected the first line number #32911)</span><br><span class="line">#     Python 3.8a1  3400 (move frame block handling to compiler #17611)</span><br><span class="line">#     Python 3.8a1  3401 (add END_ASYNC_FOR #33041)</span><br><span class="line">#     Python 3.8a1  3410 (PEP570 Python Positional-Only Parameters #36540)</span><br><span class="line">#     Python 3.8b2  3411 (Reverse evaluation order of key: value in dict</span><br><span class="line">#                         comprehensions #35224)</span><br><span class="line">#     Python 3.8b2  3412 (Swap the position of positional args and positional</span><br><span class="line">#                         only args in ast.arguments #37593)</span><br><span class="line">#     Python 3.8b4  3413 (Fix &quot;break&quot; and &quot;continue&quot; in &quot;finally&quot; #37830)</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/036cbcd20776">https://www.jianshu.com/p/036cbcd20776</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_43207777/article/details/108351862">https://blog.csdn.net/weixin_43207777/article/details/108351862</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/036cbcd20776">https://www.jianshu.com/p/036cbcd20776</a></p>
+ 
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>版权声明： </strong>
+          
+          本博客所有文章除特别声明外，著作权归作者所有。转载请注明出处！
+          
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://example.com/2024/01/10/python%E4%BB%A3%E7%A0%81%E4%BF%9D%E6%8A%A4%E5%8F%8A%E7%A0%B4%E8%A7%A3-1/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/python%E4%BF%9D%E6%8A%A4%E7%A0%B4%E8%A7%A3/" rel="tag">python保护破解</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2024/01/11/STL%E5%AD%A6%E4%B9%A0-1/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            stl学习-1
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2024/01/10/llvm%E5%9F%BA%E7%A1%80/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">llvm基础</div>
+      </a>
+    
+  </nav>
+
+  
+   
+  
+    
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2024
+        <i class="ri-heart-fill heart_icon"></i> Rain&#39;s Blog
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>访问人数:<span id="busuanzi_value_site_uv"></span></span>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>浏览次数:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+      </li>
+    </ul>
+  </div>
+</footer>    
+    </main>
+    <div class="float_btns">
+      <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+<div class="todark" id="todark">
+  <i class="ri-moon-line"></i>
+</div>
+
+    </div>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="Rain&#39;s Blog"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/friends">友链</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about">关于</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="搜索">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+    </aside>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-3.6.0.min.js"></script>
+ 
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+ 
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: ".tocbot",
+    contentSelector: ".article-entry",
+    headingSelector: "h1, h2, h3, h4, h5, h6",
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: "main",
+    positionFixedSelector: ".tocbot",
+    positionFixedClass: "is-position-fixed",
+    fixedSidebarOffset: "auto",
+  });
+</script>
+
+<script src="https://cdn.staticfile.org/jquery-modal/0.9.2/jquery.modal.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdn.staticfile.org/jquery-modal/0.9.2/jquery.modal.min.css"
+/>
+<script src="https://cdn.staticfile.org/justifiedGallery/3.8.1/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+ <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.staticfile.org/photoswipe/4.1.3/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.staticfile.org/photoswipe/4.1.3/default-skin/default-skin.min.css">
+<script src="https://cdn.staticfile.org/photoswipe/4.1.3/photoswipe.min.js"></script>
+<script src="https://cdn.staticfile.org/photoswipe/4.1.3/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script> 
+<!-- MathJax -->
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+ 
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+ 
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+ 
+<link rel="stylesheet" href="/css/clipboard.css">
+ <script src="https://cdn.staticfile.org/clipboard.js/2.0.10/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+ 
+<!-- CanvasBackground -->
+
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({ theme: "forest" });
+  }
+</script>
+
+
+    
+    
+
+  </div>
+</body>
+
+</html>
